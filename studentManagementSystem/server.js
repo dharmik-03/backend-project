@@ -1,0 +1,61 @@
+import express from "express";
+import httpError from "./middlewares/httpError.js";
+import connectDB from "./config/db.js";
+
+
+import studentRoutes from "./routes/studentRoutes.js";
+import dotenv from "dotenv"
+import cors from "cors"
+
+
+dotenv.config({path:"./.env"})
+
+
+
+const app = express();
+
+app.use(cors())
+app.use(express.json())
+app.use("/student", studentRoutes);
+
+app.get("/", (req, res) => {
+  res.send("hello from server");
+});
+
+app.use((req, res) => {
+  res.status(404).json({ success: true, message: "requested route not found" });
+});
+
+app.use((Error, req, res, next) => {
+  if (res.headersSent) {
+    return next(Error);
+  }
+
+  res
+    .status(Error.statusCode || 500)
+    .json({ message: Error.message || "something went wrong" });
+});
+
+const port = 5000;
+
+async function server() {
+  try {
+    const connect = await connectDB();
+
+    if (!connect) {
+      throw new Error("failed to connect DB");
+    }
+
+    app.listen(port, (err) => {
+      if (err) {
+        return console.log(err.message);
+      }
+
+      console.log(`server is running on port ${port}`);
+    });
+  } catch (error) {
+    console.log(error.message);
+    process.exit(1);
+  }
+}
+server()
