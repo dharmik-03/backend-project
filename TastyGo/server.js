@@ -1,0 +1,107 @@
+import express from "express";
+import httpError from "./middlewares/httpError.js";
+import connectDB from "./config/DB.js";
+import UserRouter from "./routes/user.route.js";
+import adminRouter from "./routes/admin.route.js"
+import restaurantRouter from "./routes/restaurant.route.js"
+import restaurantModel from "./model/restaurant.model.js";
+import providerRoute from "./routes/provider.route.js"
+import foodRoute from "./routes/food.route.js"
+import categoryRoute from "./routes/category.route.js"
+import orderRouter from "./routes/order.route.js"
+
+import dotenv from "dotenv";
+import User from "./model/user.model.js";
+dotenv.config({ path: "./.env" });
+
+import hpp from "hpp";
+import {rateLimit} from "express-rate-limit";
+import helmet from "helmet";
+const app = express();
+
+
+app.use(express.json())
+
+app.use(helmet());
+
+app.use(rateLimit());
+
+app.use(hpp());
+
+app.use("/user", UserRouter)
+app.use("/admin", adminRouter)
+app.use("/restaurant", restaurantRouter)
+app.use("/provider", providerRoute)
+app.use("/food", foodRoute)
+app.use("/category", categoryRoute)
+app.use("/order", orderRouter)
+
+app.get("/", (req, res, next) => {
+  res.json({ message: "hello from server" });
+});
+
+app.use((req, res, next) => {
+  res
+    .status(404)
+    .json({ success: false, message: "requested route not found" });
+});
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(new httpError(error.message));
+  }
+
+  res
+    .status(error.statusCode || 500)
+    .json({ message: error.message || "internal server error" });
+});
+
+const port = 5000;
+
+async function startServer(req, res, next) {
+  try {
+    const connect = await connectDB();
+
+    if (!connect) {
+      return console.log("DB failed");
+    }
+
+    app.listen(port, (err) => {
+      if (err) {
+        return console.log(err.message);
+      }
+
+      console.log(`server running on port ${port}`);
+    });
+  } catch (error) {
+    process.exit(1);
+  }
+}
+
+startServer();
+
+
+
+
+// async function checkOwner() {
+
+
+//   try {
+//     const restaurant = await restaurantModel.findById("6a61e816de5d316d6f01e439").populate("Owner", "name email")
+//     console.log("restaurant =>", restaurant)
+
+//     const owner = await User.findById(restaurant.Owner)
+
+//     console.log("owner =>", owner)
+
+//   } catch (error) {
+//     return next(new httpError(error.message))
+//   }
+// }
+
+
+
+
+// checkOwner()
+
+
